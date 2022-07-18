@@ -9,7 +9,6 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support.select import Select
 
 # NLP 패키지
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, TextClassificationPipeline
@@ -45,6 +44,7 @@ def crawling(args):
         # url입력
         url = "https://pagestage.kakao.com/search" # 사이트 입력
         driver.get(url) # 사이트 오픈
+        driver.maximize_window() # 전체창
         time.sleep(5) # 5초 지연
 
         # 검색창 선택
@@ -60,11 +60,12 @@ def crawling(args):
         element.send_keys(Keys.ENTER)
         time.sleep(2)
 
-        # 처음 보이는 검색결과 클릭(19금 작품은 로그인 되어있지 않아 열람 불가능)
+        # 처음 보이는 검색결과 클릭(연령제한 작품은 로그인 되어있지 않아 열람 불가능)
         search_xpath = '''//*[@id="__next"]/div[1]/div/main/div/div/div[3]/div/div[2]/div[1]/div'''
         driver.find_element(by=By.XPATH, value=search_xpath).click()
         time.sleep(2)
 
+        print(f"loading comments")
         # 더보기 버튼이 없어지기 전까지 무한클릭 -> 모든 댓글 확보
         while True:
             try:
@@ -73,7 +74,8 @@ def crawling(args):
                 time.sleep(3)
             except:
                 break
-
+        
+        print(f"spoiler processing")
         # 스포일러 방지 버튼이 없어지기 전까지 무한클릭 -> 모든 내용 온전히 확보
         while True:
             try:
@@ -83,9 +85,15 @@ def crawling(args):
             except:
                 break
 
+        print(f"extracting source")
         # 페이지 소스 출력
         html = driver.page_source
         html_source = BeautifulSoup(html, 'html.parser')
+
+        # 작가 닉네임 확보
+        writer = html_source.find("div", attrs={"class":"flex text-black text-14 font-medium items-center"})
+        writer = writer.find("div").string
+
         full_comments = html_source.find_all("div", attrs={"class":"flex-[0_1_100%] relative"})  # 전체 댓글 스크립트
 
         # 데이터 추출
@@ -95,15 +103,26 @@ def crawling(args):
         sentences = []
         likes = []
 
+        print(f"data scraping")
         for comment in full_comments:
             nickname = comment.find("p", attrs={"class":"break-words font-bold mr-6"}).string
+
+            # 작가 댓글 제거
+            if nickname == writer:
+                continue
+
+            sentence = comment.find("p", attrs={"class":"leading-[21px] break-all"}).string
+            
+            # 대가성 댓글 활동 제거
+            if "#스테이지스테플러_대가성활동" in sentence:
+                continue
+
             date = comment.find("div", attrs={"class":"flex-[0_0_auto]"}).string
             story_num = comment.find("a").string
-            sentence = comment.find("p", attrs={"class":"leading-[21px] break-all"}).string
             like = comment.find("span", attrs={"class":"font-gmarket font-medium leading-[normal] pt-[0.2em] text-12 text-13"}).string
             
-            # 댓글 전처리 작업
-            sentence = sentence.replace("#스테이지스테플러_대가성활동", "").strip()
+            # # 댓글 전처리 작업
+            # sentence = sentence.replace("#스테이지스테플러_대가성활동", "").strip()
 
             nicknames.append(nickname)
             dates.append(date)
