@@ -118,8 +118,8 @@ def crawling(args):
                 continue
 
             date = comment.find("div", attrs={"class":"flex-[0_0_auto]"}).string
-            story_num = comment.find("a").string
-            like = comment.find("span", attrs={"class":"font-gmarket font-medium leading-[normal] pt-[0.2em] text-12 text-13"}).string
+            story_num = int(comment.find("a").string.replace("화", ""))
+            like = int(comment.find("span", attrs={"class":"font-gmarket font-medium leading-[normal] pt-[0.2em] text-12 text-13"}).string)
             
             # # 댓글 전처리 작업
             # sentence = sentence.replace("#스테이지스테플러_대가성활동", "").strip()
