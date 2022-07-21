@@ -5,13 +5,14 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from collections import defaultdict
 
-st.title('Uber pickups in NYC')
-
+NOVEL_NAME = '혁명은 내 취향이 아니었다'
 DATE_COLUMN = 'date'
 EMOTION_COLUMN = 'emotion'
-DATA_DIR = ('혁명은 내 취향이 아니었다_comment_data.csv')
+DATA_DIR = NOVEL_NAME + '_comment_data.csv'
 
-@st.cache
+st.title(f'[{NOVEL_NAME}] 각 화별 댓글 감정 분석')
+
+@st.cache(allow_output_mutation=True)
 def load_data():
     data = pd.read_csv(DATA_DIR, encoding="utf-8")
     data[DATE_COLUMN] = pd.to_datetime(data[DATE_COLUMN])
@@ -25,34 +26,39 @@ def load_data():
 
     return data
 
-data_load_state = st.text('Loading data...')
 data = load_data()
-data_load_state.text("Done! (using st.cache)")
 
-emotions = defaultdict(int)
+latest_story_num = max(list(data['story_num']))
 
-for emotes in data[EMOTION_COLUMN]:
+stories = [defaultdict(int) for _ in range(latest_story_num + 1)]
+
+for emotes, like, num in zip(data[EMOTION_COLUMN], data['like'], data['story_num']):
     for emote in emotes:
-        emotions[emote] += 1
+        stories[num][emote] += (1 + like)
 
 
-if st.checkbox('Show raw data'):
-    st.subheader('Raw data')
-    st.write(data)
+viewing_story_num= st.slider('화수', 1, latest_story_num, 1)
+
+st.write(viewing_story_num)
+
+temp = list(stories[viewing_story_num].items())
+
+temp.sort(key=lambda x: x[1], reverse=True)
+
+emo_keys = [key for key, _ in temp]
+emo_vals = [val for _, val in temp]
+
+if len(emo_keys) > 5:
+    emo_keys = emo_keys[:5]
+    emo_vals = emo_vals[:5]
 
 plt.rcParams['font.family'] = 'NanumGothic'
-fig, axs = plt.subplots(figsize=(60, 20))
-axs.bar(list(emotions.keys()), list(emotions.values()))
+fig, axs = plt.subplots(figsize=(7, 5))
+axs.bar(emo_keys, emo_vals)
 
+st.subheader(f'{viewing_story_num}화 댓글 감정 Top 5')
 st.pyplot(fig)
 
-
-# st.subheader('Number of pickups by hour')
-# hist_values = np.histogram(data[DATE_COLUMN].dt.hour, bins=24, range=(0,24))[0]
-# st.bar_chart(hist_values)
-
-# hour_to_filter = st.slider('hour', 0, 23, 17)
-# filtered_data = data[data[DATE_COLUMN].dt.hour == hour_to_filter]
-
-# st.subheader('Map of all pickups at %s:00' % hour_to_filter)
-# st.map(filtered_data)
+if st.checkbox(f'{viewing_story_num}화 댓글 데이터 보기'):
+    st.subheader(f'{viewing_story_num}화 댓글 데이터')
+    st.write(data[data['story_num'] == viewing_story_num])
