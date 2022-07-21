@@ -1,7 +1,5 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 from collections import defaultdict
 
@@ -10,7 +8,7 @@ DATE_COLUMN = 'date'
 EMOTION_COLUMN = 'emotion'
 DATA_DIR = NOVEL_NAME + '_comment_data.csv'
 
-st.title(f'[{NOVEL_NAME}] 각 화별 댓글 감정 분석')
+st.title(f'[{NOVEL_NAME}] 댓글 감정 분석 대시보드')
 
 # 데이터 로딩 함수
 @st.cache(allow_output_mutation=True)
@@ -39,7 +37,7 @@ for emotes, like, num in zip(data[EMOTION_COLUMN], data['like'], data['story_num
         stories[num][emote] += (1 + like)
 
 # 화수별로 볼 수 있도록 슬라이더 세팅
-viewing_story_num= st.slider('##열람을 원하는 화수로 슬라이더를 옮겨주세요##', 1, latest_story_num, 1)
+viewing_story_num= st.slider('##열람을 원하는 회차로 슬라이더를 옮겨주세요##', 1, latest_story_num, 1)
 
 temp = list(stories[viewing_story_num].items())
 
